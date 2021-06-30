@@ -1,13 +1,16 @@
-# eap-oracle-db
+# eap-demo
 
-Example of adding adding and using and Oracle JDBC datasource to a Red Hat JBoss EAP 7.1.x container for Openshift.
+Ce dépôt présente un exemple de personnalisation de JBoss EAP sous OpenShift en utilisation les fonctionnalités de source2image.
 
-This example adds an Oracle JDBC driver as a module into the JBoss EAP image during an Openshift based source to image (s2i) build.  A datasource is created at deploy time that uses the Oracle JDBC driver.    This example assumes that the Oracle database is visible to pods via DNS alone.
+**NOTE:** Le driver JDBC driver d'Oracle n'est pas inclut dans ce dépôt.  [Téléchargement du driver JDBC](http://www.oracle.com/technetwork/database/features/jdbc/jdbc-ucp-122-3110062.html)
 
-**NOTE:** The Oracle JDBC driver is not provided with this example.  [Download the JDBC driver.](http://www.oracle.com/technetwork/database/features/jdbc/jdbc-ucp-122-3110062.html)
+Le dépot est structuré de la manière suivante:
+Répertoire `demo` contenant l'application a déployer.
+Le répertoire `demo` comprends les sous-répertoires suivants:
 
-- An `.s2i` directory that includes an `environment` [file](https://github.com/travisrogers05/eap-oracle-db/blob/master/.s2i/environment) is provided that sets `CUSTOM_INSTALL_DIRECTORIES=extensions`.  This is used by scripts provided in the JBoss EAP image to allow for customization to take place at pod deploy time.
-- An `extensions` [directory](https://github.com/travisrogers05/eap-oracle-db/tree/master/extensions) that contains 
+- répertoire `.s2i` qui inclut un [fichier](https://github.com/masauve/eap-demo/blob/main/demo/.s2i/environment) `environment`. Ce fichier indique au processus de build de JBoss d'utiliser des extensions et modules additionnels: `CUSTOM_INSTALL_DIRECTORIES=extensions`. 
+
+- un [répertoire](https://github.com/masauve/eap-demo/tree/main/demo/extensions) `extensions`  qui contient:
   - the necessary [module directory structure and module.xml](https://github.com/travisrogers05/eap-oracle-db/tree/master/extensions/modules/com/oracle/main) file for the Oracle JDBC driver, as well as the Oracle JDBC driver file.  The Oracle JDBC driver must be [downloaded from Oracle](http://www.oracle.com/technetwork/database/features/jdbc/jdbc-ucp-122-3110062.html).
   - A `drivers.env` [file](https://github.com/travisrogers05/eap-oracle-db/blob/master/extensions/drivers.env) that contains driver specific details.  This example includes one driver, but multiple drivers can be included.  Refer to the [JBoss EAP for Openshift documentation](https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.1/html-single/red_hat_jboss_enterprise_application_platform_for_openshift/#S2I-Artifacts) for further details about the expected contents of this file.
   - An `install.sh` [file](https://github.com/travisrogers05/eap-oracle-db/blob/master/extensions/install.sh) that is executed during the Openshift s2i build process.  This script takes care of installing the Oracle JDBC driver as a module into the JBoss EAP image.  (adding files to the image and updating the standalone-openshift.xml to include the driver config)

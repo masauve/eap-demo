@@ -107,12 +107,6 @@
                                 <artifactId>eap-8.0</artifactId>
                             </manifest>
                         </channel>
-                        <channel>
-                            <manifest>
-                                <groupId>org.jboss.eap</groupId>
-                                <artifactId>eap-datasources-galleon-pack</artifactId>
-                            </manifest>
-                        </channel>
                     </channels>
                     <feature-packs>
                         <feature-pack>
@@ -122,7 +116,7 @@
                             <location>org.jboss.eap.cloud:eap-cloud-galleon-pack</location>
                         </feature-pack>
                         <feature-pack>
-                            <location>org.jboss.eap:eap-datasources-galleon-pack</location>
+                            <location>org.jboss.eap:eap-datasources-galleon-pack:8.0.1.Final-redhat-00009</location>
                         </feature-pack>
                     </feature-packs>
                     <layers>
@@ -165,12 +159,6 @@
                                         <artifactId>eap-8.0</artifactId>
                                     </manifest>
                                 </channel>
-                                <channel>
-                                    <manifest>
-                                        <groupId>org.jboss.eap</groupId>
-                                        <artifactId>eap-datasources-galleon-pack</artifactId>
-                                    </manifest>
-                                </channel>
                             </channels>
                             <feature-packs>
                                 <feature-pack>
@@ -180,7 +168,7 @@
                                     <location>org.jboss.eap.cloud:eap-cloud-galleon-pack</location>
                                 </feature-pack>
                                 <feature-pack>
-                                    <location>org.jboss.eap:eap-datasources-galleon-pack</location>
+                                    <location>org.jboss.eap:eap-datasources-galleon-pack:8.0.1.Final-redhat-00009</location>
                                 </feature-pack>
                             </feature-packs>
                             <layers>

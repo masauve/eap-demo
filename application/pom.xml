@@ -21,7 +21,6 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.jakarta.jakartaee>10.0.0</version.jakarta.jakartaee>
-        <version.microprofile>6.1</version.microprofile>
         <version.eap.bom>8.0.0.GA-redhat-00009</version.eap.bom>
         <version.eap.maven.plugin>1.0.0.Final-redhat-00014</version.eap.maven.plugin>
         <version.postgresql>42.7.3</version.postgresql>
@@ -67,13 +66,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.eclipse.microprofile</groupId>
-            <artifactId>microprofile</artifactId>
-            <version>${version.microprofile}</version>
-            <type>pom</type>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 
     <build>

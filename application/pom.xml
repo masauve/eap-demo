@@ -24,6 +24,7 @@
         <version.microprofile>6.1</version.microprofile>
         <version.eap.bom>8.0.0.GA-redhat-00009</version.eap.bom>
         <version.eap.maven.plugin>1.0.0.Final-redhat-00014</version.eap.maven.plugin>
+        <version.postgresql>42.7.3</version.postgresql>
     </properties>
 
     <!-- Red Hat GA Maven repository -->
@@ -48,7 +49,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- JBoss EAP 8 BOM — ensures all EE API versions match the runtime -->
             <dependency>
                 <groupId>org.jboss.bom</groupId>
                 <artifactId>jboss-eap-ee</artifactId>
@@ -60,7 +60,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Jakarta EE 10 APIs — provided by EAP at runtime -->
         <dependency>
             <groupId>jakarta.platform</groupId>
             <artifactId>jakarta.jakartaee-api</artifactId>
@@ -68,7 +67,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- MicroProfile APIs for health, config, metrics -->
         <dependency>
             <groupId>org.eclipse.microprofile</groupId>
             <artifactId>microprofile</artifactId>
@@ -90,11 +88,32 @@
                 </configuration>
             </plugin>
 
-            <!--
-                EAP Maven Plugin with channels — the Red Hat recommended
-                approach for EAP 8. The channel resolves all Galleon feature
-                pack versions automatically, so no explicit versions needed.
-            -->
+            <!-- Download the PostgreSQL JDBC driver for the CLI script -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-postgresql-driver</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.postgresql</groupId>
+                                    <artifactId>postgresql</artifactId>
+                                    <version>${version.postgresql}</version>
+                                    <destFileName>postgresql.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.directory}/postgresql</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.jboss.eap.plugins</groupId>
                 <artifactId>eap-maven-plugin</artifactId>
@@ -115,17 +134,23 @@
                         <feature-pack>
                             <location>org.jboss.eap.cloud:eap-cloud-galleon-pack</location>
                         </feature-pack>
-                        <feature-pack>
-                            <location>org.jboss.eap:eap-datasources-galleon-pack:8.0.1.Final-redhat-00009</location>
-                        </feature-pack>
                     </feature-packs>
                     <layers>
                         <layer>jaxrs-server</layer>
                         <layer>jsf</layer>
                         <layer>observability</layer>
                         <layer>web-clustering</layer>
-                        <layer>postgresql-datasource</layer>
                     </layers>
+                    <extra-server-content-dirs>
+                        <extra-content>${project.build.directory}/postgresql</extra-content>
+                    </extra-server-content-dirs>
+                    <packaging-scripts>
+                        <packaging-script>
+                            <scripts>
+                                <script>src/main/resources/configure-datasource.cli</script>
+                            </scripts>
+                        </packaging-script>
+                    </packaging-scripts>
                     <galleon-options>
                         <jboss-fork-embedded>true</jboss-fork-embedded>
                     </galleon-options>
@@ -143,7 +168,6 @@
     </build>
 
     <profiles>
-        <!-- Profile for OpenShift S2I builds -->
         <profile>
             <id>openshift</id>
             <build>
@@ -167,17 +191,23 @@
                                 <feature-pack>
                                     <location>org.jboss.eap.cloud:eap-cloud-galleon-pack</location>
                                 </feature-pack>
-                                <feature-pack>
-                                    <location>org.jboss.eap:eap-datasources-galleon-pack:8.0.1.Final-redhat-00009</location>
-                                </feature-pack>
                             </feature-packs>
                             <layers>
                                 <layer>jaxrs-server</layer>
                                 <layer>jsf</layer>
                                 <layer>observability</layer>
                                 <layer>web-clustering</layer>
-                                <layer>postgresql-datasource</layer>
                             </layers>
+                            <extra-server-content-dirs>
+                                <extra-content>${project.build.directory}/postgresql</extra-content>
+                            </extra-server-content-dirs>
+                            <packaging-scripts>
+                                <packaging-script>
+                                    <scripts>
+                                        <script>src/main/resources/configure-datasource.cli</script>
+                                    </scripts>
+                                </packaging-script>
+                            </packaging-scripts>
                             <cloud/>
                         </configuration>
                     </plugin>

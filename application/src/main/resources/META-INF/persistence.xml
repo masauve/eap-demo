@@ -6,9 +6,8 @@
                                  https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd">
 
     <!--
-        The datasource JNDI name is injected by the EAP datasources Galleon
-        pack based on environment variables (POSTGRESQL_*). No hardcoded
-        connection strings — the same WAR works in every environment.
+        The datasource is created by the CLI script at provisioning time.
+        Connection parameters are injected via POSTGRESQL_* env vars at boot.
     -->
     <persistence-unit name="primary" transaction-type="JTA">
         <jta-data-source>java:jboss/datasources/PostgreSQLDS</jta-data-source>

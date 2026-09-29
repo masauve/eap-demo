@@ -15,7 +15,7 @@ image:
 build:
   enabled: true
   git:
-    uri: https://github.com/your-org/eap-demo.git
+    uri: https://github.com/masauve/eap-demo.git
     ref: main
     contextDir: application
   s2i:

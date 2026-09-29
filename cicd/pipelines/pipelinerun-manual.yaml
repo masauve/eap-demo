@@ -1,0 +1,40 @@
+# =============================================================================
+# Manual PipelineRun — use this to kick off a build outside of webhooks
+#
+# Usage:
+#   oc create -f cicd/pipelines/pipelinerun-manual.yaml
+# =============================================================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: eap-build-deploy-manual-
+  labels:
+    app.kubernetes.io/name: eap-demo
+    tekton.dev/pipeline: eap-build-deploy
+spec:
+  pipelineRef:
+    name: eap-build-deploy
+  params:
+    - name: git-url
+      value: https://github.com/your-org/eap-demo.git
+    - name: git-revision
+      value: main
+    - name: image-name
+      value: image-registry.openshift-image-registry.svc:5000/eap-demo/eap-demo
+    - name: app-name
+      value: eap-demo
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+    - name: maven-settings
+      configMap:
+        name: maven-settings
+        optional: true
+  taskRunTemplate:
+    serviceAccountName: pipeline

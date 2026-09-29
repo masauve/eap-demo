@@ -1,0 +1,92 @@
+# =============================================================================
+# Tekton Triggers — Webhook-driven pipeline execution
+#
+# Receives GitHub/GitLab webhook events and starts the eap-build-deploy
+# pipeline automatically on push to main.
+# =============================================================================
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: eap-build-deploy-trigger
+  labels:
+    app.kubernetes.io/name: eap-demo
+    app.kubernetes.io/component: cicd
+spec:
+  params:
+    - name: git-repo-url
+    - name: git-revision
+    - name: image-name
+
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: eap-build-deploy-
+        labels:
+          app.kubernetes.io/name: eap-demo
+          tekton.dev/pipeline: eap-build-deploy
+      spec:
+        pipelineRef:
+          name: eap-build-deploy
+        params:
+          - name: git-url
+            value: $(tt.params.git-repo-url)
+          - name: git-revision
+            value: $(tt.params.git-revision)
+          - name: image-name
+            value: $(tt.params.image-name)
+        workspaces:
+          - name: source
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 1Gi
+          - name: maven-settings
+            configMap:
+              name: maven-settings
+              optional: true
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: github-push-binding
+  labels:
+    app.kubernetes.io/name: eap-demo
+spec:
+  params:
+    - name: git-repo-url
+      value: $(body.repository.clone_url)
+    - name: git-revision
+      value: $(body.head_commit.id)
+    - name: image-name
+      value: "image-registry.openshift-image-registry.svc:5000/$(body.repository.full_name)"
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: eap-demo-listener
+  labels:
+    app.kubernetes.io/name: eap-demo
+spec:
+  serviceAccountName: pipeline
+  triggers:
+    - name: github-push
+      interceptors:
+        - ref:
+            name: github
+          params:
+            - name: eventTypes
+              value:
+                - push
+        - ref:
+            name: cel
+          params:
+            - name: filter
+              value: "body.ref == 'refs/heads/main'"
+      bindings:
+        - ref: github-push-binding
+      template:
+        ref: eap-build-deploy-trigger

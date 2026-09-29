@@ -1,0 +1,117 @@
+# =============================================================================
+# OpenShift Pipelines (Tekton) — EAP Build and Deploy Pipeline
+#
+# Stages:
+#   1. Clone source from Git
+#   2. Build the EAP application image using S2I
+#   3. Run image vulnerability scan (optional, requires ACS)
+#   4. Deploy via the EAP Operator (patch WildFlyServer CR image tag)
+#   5. Verify deployment health
+# =============================================================================
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: eap-build-deploy
+  labels:
+    app.kubernetes.io/name: eap-demo
+    app.kubernetes.io/component: cicd
+spec:
+  params:
+    - name: git-url
+      type: string
+      description: Git repository URL
+    - name: git-revision
+      type: string
+      default: main
+      description: Git branch or tag to build
+    - name: image-name
+      type: string
+      description: Fully qualified image name (e.g. image-registry.openshift-image-registry.svc:5000/eap-demo/eap-demo)
+    - name: app-name
+      type: string
+      default: eap-demo
+      description: Name of the WildFlyServer CR to update
+
+  workspaces:
+    - name: source
+      description: Workspace for cloned source code
+    - name: maven-settings
+      description: Maven settings.xml for Red Hat GA repo authentication
+      optional: true
+
+  tasks:
+    # --- 1. Clone ---
+    - name: git-clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: deleteExisting
+          value: "true"
+      workspaces:
+        - name: output
+          workspace: source
+
+    # --- 2. Build with S2I ---
+    - name: build-image
+      taskRef:
+        name: eap-s2i-build
+      runAfter:
+        - git-clone
+      params:
+        - name: IMAGE
+          value: $(params.image-name):$(tasks.git-clone.results.commit)
+        - name: BUILDER_IMAGE
+          value: registry.redhat.io/jboss-eap-8/eap8-openjdk21-builder-openshift-rhel9:latest
+        - name: RUNTIME_IMAGE
+          value: registry.redhat.io/jboss-eap-8/eap8-openjdk21-runtime-openshift-rhel9:latest
+        - name: CONTEXT_DIR
+          value: application
+        - name: MAVEN_ARGS_APPEND
+          value: "-Popenshift"
+      workspaces:
+        - name: source
+          workspace: source
+
+    # --- 3. Image scan (ACS / Stackrox) ---
+    - name: image-scan
+      taskRef:
+        name: stackrox-image-scan
+        kind: ClusterTask
+      runAfter:
+        - build-image
+      params:
+        - name: image
+          value: $(params.image-name):$(tasks.git-clone.results.commit)
+        - name: insecure-skip-tls-verify
+          value: "true"
+      when:
+        - input: "$(params.git-revision)"
+          operator: notin
+          values: ["feature/*"]
+
+    # --- 4. Deploy — update the WildFlyServer CR image ---
+    - name: deploy
+      taskRef:
+        name: eap-deploy
+      runAfter:
+        - image-scan
+      params:
+        - name: APP_NAME
+          value: $(params.app-name)
+        - name: IMAGE
+          value: $(params.image-name):$(tasks.git-clone.results.commit)
+
+    # --- 5. Verify rollout ---
+    - name: verify
+      taskRef:
+        name: eap-verify
+      runAfter:
+        - deploy
+      params:
+        - name: APP_NAME
+          value: $(params.app-name)

@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: eap-demo-staging
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: WildFlyServer
+      name: eap-demo
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: replace
+        path: /spec/resources/requests/memory
+        value: "512Mi"
+      - op: replace
+        path: /spec/resources/limits/memory
+        value: "1Gi"
+
+  - target:
+      kind: Namespace
+    patch: |
+      - op: replace
+        path: /metadata/name
+        value: eap-demo-staging

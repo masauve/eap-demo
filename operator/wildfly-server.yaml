@@ -1,0 +1,119 @@
+# =============================================================================
+# WildFlyServer Custom Resource — EAP Operator
+#
+# The EAP Operator (installed via OperatorHub as "JBoss EAP") watches for
+# WildFlyServer CRs and manages the full lifecycle:
+#   - StatefulSet creation and scaling
+#   - Graceful session draining during rolling updates
+#   - Transaction recovery before pod shutdown
+#   - Automatic route/service creation
+#
+# This CR assumes the application image was built by the S2I BuildConfig
+# or Tekton pipeline and pushed to the internal ImageStream.
+# =============================================================================
+apiVersion: wildfly.org/v1alpha1
+kind: WildFlyServer
+metadata:
+  name: eap-demo
+  labels:
+    app.kubernetes.io/name: eap-demo
+    app.kubernetes.io/part-of: eap-demo
+    app.openshift.io/runtime: eap
+spec:
+  # Number of EAP pods — the operator manages a StatefulSet under the hood
+  replicas: 3
+
+  # Full internal registry path — bare names like "eap-demo:latest" resolve
+  # to docker.io which will fail. Use the OpenShift internal registry.
+  # Replace "eap-demo" with your namespace if different.
+  applicationImage: image-registry.openshift-image-registry.svc:5000/eap-demo/eap-demo:latest
+
+  # Session draining: when scaling down or during rolling updates, the
+  # operator marks pods as "unclean" and waits for active sessions to drain
+  # before terminating them — critical for stateful EAP apps
+  sessionAffinity: true
+
+  # Disable the default OpenShift Route if you manage ingress separately
+  disableHTTPRoute: false
+
+  # Environment variables for datasource configuration
+  # The EAP datasources Galleon pack reads these at boot to configure the
+  # PostgreSQL datasource via JNDI
+  env:
+    - name: POSTGRESQL_SERVICE_HOST
+      valueFrom:
+        secretKeyRef:
+          name: eap-demo-db
+          key: host
+    - name: POSTGRESQL_SERVICE_PORT
+      valueFrom:
+        secretKeyRef:
+          name: eap-demo-db
+          key: port
+    - name: POSTGRESQL_DATABASE
+      valueFrom:
+        secretKeyRef:
+          name: eap-demo-db
+          key: database
+    - name: POSTGRESQL_USER
+      valueFrom:
+        secretKeyRef:
+          name: eap-demo-db
+          key: username
+    - name: POSTGRESQL_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: eap-demo-db
+          key: password
+
+    # JGroups clustering — use KUBE_PING for Kubernetes-native discovery
+    # (replaces multicast/UDP which doesn't work in containers)
+    - name: JGROUPS_PING_PROTOCOL
+      value: "kubernetes.KUBE_PING"
+    - name: KUBERNETES_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: KUBERNETES_LABELS
+      value: "app.kubernetes.io/name=eap-demo"
+
+    # JVM tuning — let the container-aware JDK handle heap sizing
+    - name: JAVA_OPTS_APPEND
+      value: >-
+        -Djboss.node.name=${HOSTNAME}
+        -Djboss.tx.node.id=${HOSTNAME}
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+
+  # Resource limits — always set these so the JVM respects container boundaries
+  resources:
+    limits:
+      cpu: "2"
+      memory: "1Gi"
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+
+  # Storage for transaction logs (required for transaction recovery)
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+        storageClassName: gp3-csi
+---
+# RBAC — KUBE_PING needs permission to list pods in the namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: eap-demo-kube-ping
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: eap-demo

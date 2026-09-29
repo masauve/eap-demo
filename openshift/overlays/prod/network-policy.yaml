@@ -1,0 +1,31 @@
+# Restrict ingress to EAP pods — only from the OpenShift router and
+# same-namespace pods (e.g. PostgreSQL)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: eap-demo-allow-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: eap-demo
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow OpenShift router (HAProxy)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+      ports:
+        - port: 8080
+          protocol: TCP
+    # Allow intra-namespace traffic (DB, JGroups clustering)
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 7600
+          protocol: TCP
+        - port: 57600
+          protocol: TCP

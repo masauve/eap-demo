@@ -1,0 +1,39 @@
+# =============================================================================
+# Tekton Task — Deploy via EAP Operator
+#
+# Patches the WildFlyServer CR with the new image tag, which triggers the
+# operator to perform a rolling update with session draining.
+# =============================================================================
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: eap-deploy
+  labels:
+    app.kubernetes.io/name: eap-demo
+    app.kubernetes.io/component: cicd
+spec:
+  params:
+    - name: APP_NAME
+      type: string
+      description: Name of the WildFlyServer CR
+    - name: IMAGE
+      type: string
+      description: New image reference (name:tag or name@sha256:digest)
+
+  steps:
+    - name: patch-wildflyserver
+      image: registry.redhat.io/openshift4/ose-cli:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        echo "Updating WildFlyServer '$(params.APP_NAME)' to image '$(params.IMAGE)'"
+
+        oc patch wildflyserver $(params.APP_NAME) \
+          --type merge \
+          -p "{\"spec\":{\"applicationImage\":\"$(params.IMAGE)\"}}"
+
+        echo "Waiting for operator to begin rollout..."
+        sleep 5
+
+        oc get wildflyserver $(params.APP_NAME) -o yaml

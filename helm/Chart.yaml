@@ -1,0 +1,15 @@
+apiVersion: v2
+name: eap-demo
+description: |
+  Helm chart for deploying JBoss EAP 8 applications on OpenShift using the
+  EAP Operator (WildFlyServer CR), including PostgreSQL, networking, and
+  observability configuration.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - jboss
+  - eap
+  - openshift
+  - jakarta-ee
+home: https://github.com/your-org/eap-demo

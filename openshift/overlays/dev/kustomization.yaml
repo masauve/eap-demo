@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: eap-demo-dev
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: WildFlyServer
+      name: eap-demo
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/resources/requests/memory
+        value: "256Mi"
+      - op: replace
+        path: /spec/resources/limits/memory
+        value: "512Mi"
+      - op: replace
+        path: /spec/resources/requests/cpu
+        value: "250m"
+      - op: replace
+        path: /spec/resources/limits/cpu
+        value: "1"
+
+  - target:
+      kind: Namespace
+    patch: |
+      - op: replace
+        path: /metadata/name
+        value: eap-demo-dev

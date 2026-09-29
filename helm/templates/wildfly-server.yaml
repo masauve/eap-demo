@@ -1,0 +1,70 @@
+apiVersion: wildfly.org/v1alpha1
+kind: WildFlyServer
+metadata:
+  name: {{ include "eap-demo.fullname" . }}
+  labels:
+    {{- include "eap-demo.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  applicationImage: {{ .Values.image.registry }}/{{ .Values.image.namespace }}/{{ .Values.image.name }}:{{ .Values.image.tag }}
+  sessionAffinity: {{ .Values.operator.sessionAffinity }}
+  disableHTTPRoute: {{ not .Values.route.enabled }}
+
+  env:
+    # --- Database (driven by the EAP datasources Galleon pack) ---
+    - name: POSTGRESQL_SERVICE_HOST
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.database.secretName }}
+          key: host
+    - name: POSTGRESQL_SERVICE_PORT
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.database.secretName }}
+          key: port
+    - name: POSTGRESQL_DATABASE
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.database.secretName }}
+          key: database
+    - name: POSTGRESQL_USER
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.database.secretName }}
+          key: username
+    - name: POSTGRESQL_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.database.secretName }}
+          key: password
+
+    # --- Clustering ---
+    - name: JGROUPS_PING_PROTOCOL
+      value: {{ .Values.clustering.protocol | quote }}
+    - name: KUBERNETES_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: KUBERNETES_LABELS
+      value: {{ .Values.clustering.labels | quote }}
+
+    # --- JVM ---
+    - name: JAVA_OPTS_APPEND
+      value: {{ printf "-Djboss.node.name=${HOSTNAME} -Djboss.tx.node.id=${HOSTNAME} %s" .Values.javaOptsAppend | quote }}
+
+  resources:
+    {{- toYaml .Values.resources | nindent 4 }}
+
+  {{- if .Values.storage.enabled }}
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+        {{- if .Values.storage.storageClassName }}
+        storageClassName: {{ .Values.storage.storageClassName }}
+        {{- end }}
+  {{- end }}

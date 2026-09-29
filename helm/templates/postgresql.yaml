@@ -1,0 +1,102 @@
+{{- if .Values.postgresql.enabled }}
+# PostgreSQL Deployment using the official Red Hat RHEL9 image
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eap-demo.fullname" . }}-postgresql
+  labels:
+    {{- include "eap-demo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "eap-demo.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: database
+  template:
+    metadata:
+      labels:
+        {{- include "eap-demo.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: database
+    spec:
+      containers:
+        - name: postgresql
+          image: {{ .Values.postgresql.image }}
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: username
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: password
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: database
+          resources:
+            {{- toYaml .Values.postgresql.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - /usr/libexec/check-container
+                - --live
+            initialDelaySeconds: 120
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /usr/libexec/check-container
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: postgresql-data
+              mountPath: /var/lib/pgsql/data
+      volumes:
+        - name: postgresql-data
+          persistentVolumeClaim:
+            claimName: {{ include "eap-demo.fullname" . }}-postgresql
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "eap-demo.fullname" . }}-postgresql
+  labels:
+    {{- include "eap-demo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.postgresql.persistence.size }}
+  {{- if .Values.postgresql.persistence.storageClass }}
+  storageClassName: {{ .Values.postgresql.persistence.storageClass }}
+  {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql
+  labels:
+    {{- include "eap-demo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgresql
+  selector:
+    {{- include "eap-demo.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+{{- end }}

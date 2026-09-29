@@ -1,0 +1,60 @@
+# =============================================================================
+# OpenShift BuildConfig — S2I build using Red Hat EAP 8 builder image
+#
+# This BuildConfig uses the Source strategy (S2I) with the official
+# registry.redhat.io EAP 8 builder image. The WildFly Maven Plugin in the
+# pom.xml handles Galleon provisioning during the S2I assemble phase.
+#
+# The resulting image is pushed to the internal registry as an ImageStream
+# which the EAP Operator / Deployment references.
+# =============================================================================
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: eap-demo
+  labels:
+    app: eap-demo
+    app.kubernetes.io/name: eap-demo
+    app.kubernetes.io/component: build
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: eap-demo:latest
+  source:
+    type: Git
+    git:
+      uri: https://github.com/your-org/eap-demo.git
+      ref: main
+    contextDir: application
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: jboss-eap8-openjdk21-openshift:latest
+      env:
+        - name: MAVEN_ARGS_APPEND
+          value: "-Popenshift"
+        - name: ARTIFACT_DIR
+          value: "target"
+        - name: MAVEN_MIRROR_URL
+          valueFrom:
+            configMapKeyRef:
+              name: maven-settings
+              key: mirror-url
+              optional: true
+  triggers:
+    - type: ImageChange
+    - type: ConfigChange
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: eap-demo
+  labels:
+    app: eap-demo
+spec:
+  lookupPolicy:
+    local: true

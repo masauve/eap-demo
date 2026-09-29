@@ -1,0 +1,13 @@
+# Ensure at least 2 pods remain available during voluntary disruptions
+# (node drains, cluster upgrades)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: eap-demo-pdb
+  labels:
+    app.kubernetes.io/name: eap-demo
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: eap-demo

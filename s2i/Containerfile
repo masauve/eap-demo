@@ -1,0 +1,30 @@
+# =============================================================================
+# JBoss EAP 8 — Multi-stage S2I-compatible container build
+#
+# Uses the official Red Hat EAP 8 builder and runtime images from
+# registry.redhat.io. The builder stage compiles the application and
+# provisions a trimmed EAP server via Galleon layers. The runtime stage
+# copies only the provisioned server and deployed app — no build tools,
+# Maven cache, or source code in the final image.
+#
+# Requires: authenticated access to registry.redhat.io
+#   podman login registry.redhat.io
+# =============================================================================
+
+# --- Stage 1: Build ---
+FROM registry.redhat.io/jboss-eap-8/eap8-openjdk21-builder-openshift-rhel9:latest AS builder
+
+COPY --chown=185 application /tmp/src
+
+USER 185
+
+RUN /usr/local/s2i/assemble
+
+# --- Stage 2: Runtime ---
+FROM registry.redhat.io/jboss-eap-8/eap8-openjdk21-runtime-openshift-rhel9:latest AS runtime
+
+COPY --from=builder /opt/server $JBOSS_HOME
+
+USER 185
+
+CMD /opt/eap/bin/openshift-launch.sh

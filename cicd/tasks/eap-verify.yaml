@@ -1,0 +1,85 @@
+# =============================================================================
+# Tekton Task — Verify EAP Deployment
+#
+# Waits for all pods to reach Ready state and validates the health endpoints.
+# =============================================================================
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: eap-verify
+  labels:
+    app.kubernetes.io/name: eap-demo
+    app.kubernetes.io/component: cicd
+spec:
+  params:
+    - name: APP_NAME
+      type: string
+      description: Name of the WildFlyServer CR
+    - name: TIMEOUT
+      type: string
+      default: "300s"
+      description: Timeout for rollout to complete
+
+  steps:
+    - name: wait-for-rollout
+      image: registry.redhat.io/openshift4/ose-cli:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        echo "Waiting for WildFlyServer '$(params.APP_NAME)' rollout..."
+
+        # The EAP Operator manages a StatefulSet named after the WildFlyServer CR
+        oc rollout status statefulset/$(params.APP_NAME) \
+          --timeout=$(params.TIMEOUT)
+
+        echo "Rollout complete. Checking pod health..."
+
+        # Verify all pods report ready
+        READY_PODS=$(oc get pods \
+          -l app.kubernetes.io/name=$(params.APP_NAME) \
+          -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}')
+
+        for status in $READY_PODS; do
+          if [ "$status" != "True" ]; then
+            echo "ERROR: Not all pods are ready"
+            oc get pods -l app.kubernetes.io/name=$(params.APP_NAME)
+            exit 1
+          fi
+        done
+
+        echo "All pods are ready."
+
+    - name: smoke-test
+      image: registry.redhat.io/ubi9/ubi-minimal:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        SVC_URL="http://$(params.APP_NAME)-loadbalancer:8080"
+
+        echo "Running smoke test against ${SVC_URL}..."
+
+        # Health check
+        HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+          "${SVC_URL}/health/ready" || true)
+
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "Health check passed (HTTP ${HTTP_CODE})"
+        else
+          echo "Health check failed (HTTP ${HTTP_CODE})"
+          exit 1
+        fi
+
+        # API smoke test
+        HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+          "${SVC_URL}/api/tasks" || true)
+
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "API smoke test passed (HTTP ${HTTP_CODE})"
+        else
+          echo "API smoke test failed (HTTP ${HTTP_CODE})"
+          exit 1
+        fi
+
+        echo "All smoke tests passed."

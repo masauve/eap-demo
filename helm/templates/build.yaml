@@ -1,0 +1,45 @@
+{{- if .Values.build.enabled }}
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: {{ .Values.image.name }}
+  labels:
+    {{- include "eap-demo.labels" . | nindent 4 }}
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: {{ .Values.image.name }}
+  labels:
+    {{- include "eap-demo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: build
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: {{ .Values.image.name }}:{{ .Values.image.tag }}
+  source:
+    type: Git
+    git:
+      uri: {{ .Values.build.git.uri }}
+      ref: {{ .Values.build.git.ref }}
+    contextDir: {{ .Values.build.git.contextDir }}
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: {{ .Values.build.s2i.builderImage }}
+      env:
+        - name: MAVEN_ARGS_APPEND
+          value: {{ .Values.build.s2i.mavenArgs | quote }}
+        - name: ARTIFACT_DIR
+          value: "target"
+  triggers:
+    - type: ImageChange
+    - type: ConfigChange
+{{- end }}

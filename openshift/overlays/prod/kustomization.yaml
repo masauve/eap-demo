@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: eap-demo-prod
+
+resources:
+  - ../../base
+  - network-policy.yaml
+  - pod-disruption-budget.yaml
+
+patches:
+  - target:
+      kind: WildFlyServer
+      name: eap-demo
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 3
+      - op: replace
+        path: /spec/resources/requests/memory
+        value: "1Gi"
+      - op: replace
+        path: /spec/resources/limits/memory
+        value: "2Gi"
+      - op: replace
+        path: /spec/resources/requests/cpu
+        value: "1"
+      - op: replace
+        path: /spec/resources/limits/cpu
+        value: "4"
+      - op: replace
+        path: /spec/storage/volumeClaimTemplate/spec/resources/requests/storage
+        value: "5Gi"
+
+  - target:
+      kind: Namespace
+    patch: |
+      - op: replace
+        path: /metadata/name
+        value: eap-demo-prod

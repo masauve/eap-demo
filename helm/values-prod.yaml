@@ -1,0 +1,28 @@
+# Production environment overrides
+replicas: 3
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 1Gi
+  limits:
+    cpu: "4"
+    memory: 2Gi
+
+storage:
+  size: 5Gi
+  storageClassName: gp3-csi
+
+route:
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+
+monitoring:
+  enabled: true
+  interval: 15s
+
+postgresql:
+  persistence:
+    size: 20Gi
+    storageClass: gp3-csi

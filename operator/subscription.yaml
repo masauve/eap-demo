@@ -1,0 +1,22 @@
+# =============================================================================
+# EAP Operator installation via OLM (OperatorHub)
+#
+# The "JBoss EAP" operator is available from the Red Hat Operators catalog
+# on OpenShift. It installs the WildFlyServer CRD and a controller that
+# manages EAP StatefulSets with session draining and transaction recovery.
+#
+# Before applying, verify the package name and channel for your cluster:
+#   oc get packagemanifests -n openshift-marketplace | grep -i eap
+#   oc describe packagemanifest eap -n openshift-marketplace
+# =============================================================================
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: eap
+  namespace: openshift-operators
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: eap
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace

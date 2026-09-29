@@ -4,8 +4,7 @@
         <artifact name="org.postgresql:postgresql:42.7.3"/>
     </resources>
     <dependencies>
-        <module name="javax.api"/>
-        <module name="javax.transaction.api"/>
-        <module name="javax.logging"/>
+        <module name="java.se"/>
+        <module name="jakarta.transaction.api"/>
     </dependencies>
 </module>

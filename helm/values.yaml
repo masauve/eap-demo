@@ -45,9 +45,8 @@ clustering:
   labels: "app.kubernetes.io/name=eap-demo"
 
 # -- JVM options appended to JAVA_OPTS
-javaOptsAppend: >-
-  -XX:+UseG1GC
-  -XX:MaxGCPauseMillis=200
+# Do not set a GC algorithm here — the EAP image launcher sets one automatically.
+javaOptsAppend: ""
 
 # -- Transaction log volume
 storage:

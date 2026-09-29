@@ -77,13 +77,11 @@ spec:
     - name: KUBERNETES_LABELS
       value: "app.kubernetes.io/name=eap-demo"
 
-    # JVM tuning — let the container-aware JDK handle heap sizing
+    # JVM tuning — the EAP image launcher sets GC and heap options automatically
     - name: JAVA_OPTS_APPEND
       value: >-
         -Djboss.node.name=${HOSTNAME}
         -Djboss.tx.node.id=${HOSTNAME}
-        -XX:+UseG1GC
-        -XX:MaxGCPauseMillis=200
 
   # Resource limits — always set these so the JVM respects container boundaries
   resources:

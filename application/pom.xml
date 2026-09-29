@@ -107,6 +107,12 @@
                                 <artifactId>eap-8.0</artifactId>
                             </manifest>
                         </channel>
+                        <channel>
+                            <manifest>
+                                <groupId>org.jboss.eap</groupId>
+                                <artifactId>eap-datasources-galleon-pack</artifactId>
+                            </manifest>
+                        </channel>
                     </channels>
                     <feature-packs>
                         <feature-pack>
@@ -157,6 +163,12 @@
                                     <manifest>
                                         <groupId>org.jboss.eap.channels</groupId>
                                         <artifactId>eap-8.0</artifactId>
+                                    </manifest>
+                                </channel>
+                                <channel>
+                                    <manifest>
+                                        <groupId>org.jboss.eap</groupId>
+                                        <artifactId>eap-datasources-galleon-pack</artifactId>
                                     </manifest>
                                 </channel>
                             </channels>

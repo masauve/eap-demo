@@ -39,6 +39,8 @@ spec:
           value: {{ .Values.build.s2i.mavenArgs | quote }}
         - name: ARTIFACT_DIR
           value: "target"
+        - name: MAVEN_SETTINGS_XML
+          value: "/tmp/src/configuration/settings.xml"
   triggers:
     - type: ImageChange
     - type: ConfigChange

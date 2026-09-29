@@ -121,11 +121,8 @@
                     </feature-packs>
                     <layers>
                         <layer>jaxrs-server</layer>
-                        <layer>jpa</layer>
                         <layer>jsf</layer>
-                        <layer>microprofile-health</layer>
-                        <layer>microprofile-config</layer>
-                        <layer>microprofile-openapi</layer>
+                        <layer>observability</layer>
                         <layer>web-clustering</layer>
                         <layer>postgresql-datasource</layer>
                     </layers>
@@ -176,11 +173,8 @@
                             </feature-packs>
                             <layers>
                                 <layer>jaxrs-server</layer>
-                                <layer>jpa</layer>
                                 <layer>jsf</layer>
-                                <layer>microprofile-health</layer>
-                                <layer>microprofile-config</layer>
-                                <layer>microprofile-openapi</layer>
+                                <layer>observability</layer>
                                 <layer>web-clustering</layer>
                                 <layer>postgresql-datasource</layer>
                             </layers>

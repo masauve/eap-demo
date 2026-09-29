@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EAP Task Manager</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        header {
+            background: #c00;
+            color: #fff;
+            padding: 1.5rem 2rem;
+            border-radius: 8px 8px 0 0;
+        }
+
+        header h1 { font-size: 1.4rem; font-weight: 600; }
+        header p { font-size: 0.85rem; opacity: 0.85; margin-top: 0.25rem; }
+
+        .card {
+            background: #fff;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 1.5rem 2rem;
+        }
+
+        .add-form {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .add-form input {
+            flex: 1;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .add-form input:focus { outline: none; border-color: #c00; }
+
+        .add-form button {
+            padding: 0.6rem 1.2rem;
+            background: #c00;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .add-form button:hover { background: #a00; }
+
+        .task-list { list-style: none; }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .task-item:last-child { border-bottom: none; }
+
+        .task-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #c00;
+            cursor: pointer;
+        }
+
+        .task-item .title { flex: 1; font-size: 0.95rem; }
+        .task-item .title.completed { text-decoration: line-through; color: #999; }
+
+        .task-item .description {
+            font-size: 0.8rem;
+            color: #888;
+            flex: 1;
+        }
+
+        .task-item .delete-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 0.25rem;
+        }
+
+        .task-item .delete-btn:hover { color: #c00; }
+
+        .empty {
+            text-align: center;
+            color: #999;
+            padding: 2rem 0;
+            font-size: 0.95rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EAP Task Manager</h1>
+            <p>JBoss EAP 8 on OpenShift</p>
+        </header>
+        <div class="card">
+            <div id="error" class="error"></div>
+
+            <form class="add-form" id="addForm">
+                <input type="text" id="titleInput" placeholder="Add a new task..." required>
+                <button type="submit">Add</button>
+            </form>
+
+            <ul class="task-list" id="taskList"></ul>
+
+            <div class="status-bar">
+                <span id="taskCount"></span>
+                <span id="serverInfo"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = `${window.location.origin}/api/tasks`;
+        const taskList = document.getElementById('taskList');
+        const addForm = document.getElementById('addForm');
+        const titleInput = document.getElementById('titleInput');
+        const taskCount = document.getElementById('taskCount');
+        const serverInfo = document.getElementById('serverInfo');
+        const errorDiv = document.getElementById('error');
+
+        function showError(msg) {
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+
+        async function loadTasks() {
+            try {
+                const res = await fetch(API);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const tasks = await res.json();
+                renderTasks(tasks);
+            } catch (e) {
+                showError(`Failed to load tasks: ${e.message}`);
+            }
+        }
+
+        function renderTasks(tasks) {
+            if (tasks.length === 0) {
+                taskList.innerHTML = '<li class="empty">No tasks yet. Add one above.</li>';
+                taskCount.textContent = '';
+                return;
+            }
+
+            const done = tasks.filter(t => t.completed).length;
+            taskCount.textContent = `${done}/${tasks.length} completed`;
+
+            taskList.innerHTML = tasks.map(t => `
+                <li class="task-item">
+                    <input type="checkbox" ${t.completed ? 'checked' : ''}
+                           onchange="toggleTask(${t.id}, this.checked)">
+                    <span class="title ${t.completed ? 'completed' : ''}">${escapeHtml(t.title)}</span>
+                    <button class="delete-btn" onclick="deleteTask(${t.id})">&times;</button>
+                </li>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        addForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = titleInput.value.trim();
+            if (!title) return;
+
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, completed: false })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                titleInput.value = '';
+                loadTasks();
+            } catch (e) {
+                showError(`Failed to add task: ${e.message}`);
+            }
+        });
+
+        async function toggleTask(id, completed) {
+            try {
+                const res = await fetch(`${API}/${id}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const task = await res.json();
+                task.completed = completed;
+
+                const update = await fetch(`${API}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(task)
+                });
+                if (!update.ok) throw new Error(`HTTP ${update.status}`);
+                loadTasks();
+            } catch (e) {
+                showError(`Failed to update task: ${e.message}`);
+                loadTasks();
+            }
+        }
+
+        async function deleteTask(id) {
+            try {
+                const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                loadTasks();
+            } catch (e) {
+                showError(`Failed to delete task: ${e.message}`);
+            }
+        }
+
+        // Check server health
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${window.location.origin}/health/ready`);
+                serverInfo.textContent = res.ok ? 'Server: healthy' : 'Server: degraded';
+            } catch {
+                serverInfo.textContent = 'Server: unreachable';
+            }
+        }
+
+        loadTasks();
+        checkHealth();
+    </script>
+</body>
+</html>

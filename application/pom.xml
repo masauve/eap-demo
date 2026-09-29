@@ -22,9 +22,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.jakarta.jakartaee>10.0.0</version.jakarta.jakartaee>
         <version.microprofile>6.1</version.microprofile>
-        <version.eap.bom>8.0.0.GA</version.eap.bom>
-        <version.wildfly.maven.plugin>5.0.0.Final</version.wildfly.maven.plugin>
-        <version.eap.datasources.galleon>7.0.0.GA-redhat-00003</version.eap.datasources.galleon>
+        <version.eap.bom>8.0.0.GA-redhat-00009</version.eap.bom>
+        <version.eap.maven.plugin>1.0.0.Final-redhat-00014</version.eap.maven.plugin>
     </properties>
 
     <!-- Red Hat GA Maven repository -->
@@ -92,16 +91,23 @@
             </plugin>
 
             <!--
-                WildFly Maven Plugin — provisions a trimmed EAP server with
-                only the Galleon layers the app actually needs. This is the
-                Red Hat recommended approach for container builds: smaller
-                image, faster startup, reduced attack surface.
+                EAP Maven Plugin with channels — the Red Hat recommended
+                approach for EAP 8. The channel resolves all Galleon feature
+                pack versions automatically, so no explicit versions needed.
             -->
             <plugin>
-                <groupId>org.wildfly.plugins</groupId>
-                <artifactId>wildfly-maven-plugin</artifactId>
-                <version>${version.wildfly.maven.plugin}</version>
+                <groupId>org.jboss.eap.plugins</groupId>
+                <artifactId>eap-maven-plugin</artifactId>
+                <version>${version.eap.maven.plugin}</version>
                 <configuration>
+                    <channels>
+                        <channel>
+                            <manifest>
+                                <groupId>org.jboss.eap.channels</groupId>
+                                <artifactId>eap-8.0</artifactId>
+                            </manifest>
+                        </channel>
+                    </channels>
                     <feature-packs>
                         <feature-pack>
                             <location>org.jboss.eap:wildfly-ee-galleon-pack</location>
@@ -114,20 +120,13 @@
                         </feature-pack>
                     </feature-packs>
                     <layers>
-                        <!-- Core web profile -->
                         <layer>jaxrs-server</layer>
                         <layer>jpa</layer>
                         <layer>jsf</layer>
-
-                        <!-- Observability -->
                         <layer>microprofile-health</layer>
                         <layer>microprofile-config</layer>
                         <layer>microprofile-openapi</layer>
-
-                        <!-- Clustering for HA deployments -->
                         <layer>web-clustering</layer>
-
-                        <!-- PostgreSQL datasource (driven by env vars) -->
                         <layer>postgresql-datasource</layer>
                     </layers>
                     <galleon-options>
@@ -153,9 +152,28 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.wildfly.plugins</groupId>
-                        <artifactId>wildfly-maven-plugin</artifactId>
+                        <groupId>org.jboss.eap.plugins</groupId>
+                        <artifactId>eap-maven-plugin</artifactId>
                         <configuration>
+                            <channels>
+                                <channel>
+                                    <manifest>
+                                        <groupId>org.jboss.eap.channels</groupId>
+                                        <artifactId>eap-8.0</artifactId>
+                                    </manifest>
+                                </channel>
+                            </channels>
+                            <feature-packs>
+                                <feature-pack>
+                                    <location>org.jboss.eap:wildfly-ee-galleon-pack</location>
+                                </feature-pack>
+                                <feature-pack>
+                                    <location>org.jboss.eap.cloud:eap-cloud-galleon-pack</location>
+                                </feature-pack>
+                                <feature-pack>
+                                    <location>org.jboss.eap:eap-datasources-galleon-pack</location>
+                                </feature-pack>
+                            </feature-packs>
                             <layers>
                                 <layer>jaxrs-server</layer>
                                 <layer>jpa</layer>

@@ -1,17 +1,11 @@
-# Configure PostgreSQL datasource at provisioning time.
-# Connection parameters are injected via environment variables at runtime.
-
-# Add the PostgreSQL JDBC driver module
-module add --name=org.postgresql --resources=postgresql.jar --dependencies=javax.api,javax.transaction.api
-
-# Register the driver
+# Register the PostgreSQL JDBC driver (module installed via extra-content)
 /subsystem=datasources/jdbc-driver=postgresql:add( \
     driver-name=postgresql, \
     driver-module-name=org.postgresql, \
     driver-xa-datasource-class-name=org.postgresql.xa.PGXADataSource \
 )
 
-# Add the datasource — connection URL uses env var expressions resolved at boot
+# Create the datasource — connection URL uses env var expressions resolved at boot
 data-source add \
     --name=PostgreSQLDS \
     --jndi-name=java:jboss/datasources/PostgreSQLDS \

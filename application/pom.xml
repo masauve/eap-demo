@@ -88,32 +88,6 @@
                 </configuration>
             </plugin>
 
-            <!-- Download the PostgreSQL JDBC driver for the CLI script -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-postgresql-driver</id>
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>org.postgresql</groupId>
-                                    <artifactId>postgresql</artifactId>
-                                    <version>${version.postgresql}</version>
-                                    <destFileName>postgresql.jar</destFileName>
-                                </artifactItem>
-                            </artifactItems>
-                            <outputDirectory>${project.build.directory}/postgresql</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
             <plugin>
                 <groupId>org.jboss.eap.plugins</groupId>
                 <artifactId>eap-maven-plugin</artifactId>
@@ -142,7 +116,7 @@
                         <layer>web-clustering</layer>
                     </layers>
                     <extra-server-content-dirs>
-                        <extra-content>${project.build.directory}/postgresql</extra-content>
+                        <extra-content>src/main/extra-content</extra-content>
                     </extra-server-content-dirs>
                     <packaging-scripts>
                         <packaging-script>
@@ -199,7 +173,7 @@
                                 <layer>web-clustering</layer>
                             </layers>
                             <extra-server-content-dirs>
-                                <extra-content>${project.build.directory}/postgresql</extra-content>
+                                <extra-content>src/main/extra-content</extra-content>
                             </extra-server-content-dirs>
                             <packaging-scripts>
                                 <packaging-script>
